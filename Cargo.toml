@@ -17,6 +17,7 @@ google-calendar3 = "5.0"
 dirs = "5.0"
 hyper = { version = "0.14", features = ["full"] }
 hyper-rustls = "0.25"
+yasumi = "0.2"
 
 [dev-dependencies]
 assert_cmd = "2"

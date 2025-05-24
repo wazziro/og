@@ -54,6 +54,10 @@ enum Commands {
     Cal {
         #[arg(long = "title", help = "Show only titles without time")]
         title: bool,
+        #[arg(long = "next", short = 'n', help = "Show next business day events")]
+        next: bool,
+        #[arg(long = "all", short = 'a', help = "Show all events including all-day and hidden events")]
+        all: bool,
     },
 }
 
@@ -140,8 +144,14 @@ async fn main() -> Result<(), String> {
                     print!("{}", markdown_out);
                 }
             },
-            Commands::Cal { title } => {
-                match calendar::get_today_events(title).await {
+            Commands::Cal { title, next, all } => {
+                let events_result = if next {
+                    calendar::get_next_business_day_events(all).await
+                } else {
+                    calendar::get_today_events(all).await
+                };
+                
+                match events_result {
                     Ok(events) => {
                         let output = calendar::format_events_output(&events, title);
                         print!("{}", output);
