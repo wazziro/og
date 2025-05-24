@@ -1,9 +1,10 @@
-use chrono::{Local, NaiveDate, NaiveTime, TimeZone, Utc};
+use chrono::{Datelike, Local, NaiveDate, NaiveTime, TimeZone, Utc, Weekday};
 use google_calendar3::{CalendarHub, hyper, hyper_rustls};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
+use yasumi;
 use yup_oauth2::{
     ApplicationSecret, InstalledFlowAuthenticator, InstalledFlowReturnMethod,
 };
@@ -50,11 +51,64 @@ struct InstalledCredentials {
     redirect_uris: Vec<String>,
 }
 
-pub async fn get_today_events(_show_title_only: bool) -> Result<Vec<CalendarEvent>, Box<dyn Error>> {
+pub async fn get_today_events(show_all: bool) -> Result<Vec<CalendarEvent>, Box<dyn Error>> {
     let hub = create_calendar_hub().await?;
     let today = Local::now().date_naive();
     let events = fetch_events_for_date(&hub, today).await?;
-    Ok(events)
+    Ok(filter_events(events, show_all))
+}
+
+pub async fn get_next_business_day_events(show_all: bool) -> Result<Vec<CalendarEvent>, Box<dyn Error>> {
+    let hub = create_calendar_hub().await?;
+    let today = Local::now().date_naive();
+    let next_business_day = next_business_day_jp(today);
+    let events = fetch_events_for_date(&hub, next_business_day).await?;
+    Ok(filter_events(events, show_all))
+}
+
+/// Filters events based on visibility rules
+/// - All-day events are hidden unless show_all is true
+/// - Events starting with '.' are hidden unless show_all is true
+fn filter_events(events: Vec<CalendarEvent>, show_all: bool) -> Vec<CalendarEvent> {
+    if show_all {
+        return events;
+    }
+    
+    events.into_iter().filter(|event| {
+        // Hide all-day events unless --all is specified
+        if event.is_all_day {
+            return false;
+        }
+        
+        // Hide events starting with '.' unless --all is specified
+        if event.title.starts_with('.') {
+            return false;
+        }
+        
+        true
+    }).collect()
+}
+
+/// Checks if a given date is a business day in Japan (not weekend or holiday)
+pub fn is_business_day_jp(date: NaiveDate) -> bool {
+    // Check if it's weekend
+    if date.weekday() == Weekday::Sat || date.weekday() == Weekday::Sun {
+        return false;
+    }
+    
+    // Check if it's a Japanese holiday
+    !yasumi::is_holiday(date)
+}
+
+/// Returns the next business day after the given date
+pub fn next_business_day_jp(from_date: NaiveDate) -> NaiveDate {
+    let mut candidate = from_date + chrono::Duration::days(1);
+    
+    while !is_business_day_jp(candidate) {
+        candidate = candidate + chrono::Duration::days(1);
+    }
+    
+    candidate
 }
 
 async fn create_calendar_hub() -> Result<CalendarHub<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>, Box<dyn Error>> {
