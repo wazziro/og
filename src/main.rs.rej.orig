@@ -1,0 +1,10 @@
+@@ -11,7 +11,7 @@
+ mod cal_model;
+ mod config;
+ 
+-use cal_model::CalendarEvent;
++// use cal_model::CalendarEvent;
+ use chrono::Local;
+ use config::Config;
+ use std::error::Error;
+\ No newline at end of line

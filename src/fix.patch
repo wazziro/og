@@ -1,0 +1,11 @@
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -14,7 +14,7 @@
+-use cal_model::CalendarEvent;
++// use cal_model::CalendarEvent;
+ 
+--- a/src/cal_model.rs
++++ b/src/cal_model.rs
+@@ -127,7 +127,7 @@
+-fn get_real_calendar_events(date: NaiveDate) -> Result<Vec<CalendarEvent>, Box<dyn Error>> {
++fn get_real_calendar_events(_date: NaiveDate) -> Result<Vec<CalendarEvent>, Box<dyn Error>> {
